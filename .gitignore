@@ -1,0 +1,20 @@
+# Node
+node_modules/
+dist/
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.venv310/
+venv/
+ENV/
+env/
+*.pyd
+*.pt
+*.h5
+
+# OS
+.DS_Store
+Thumbs.db
