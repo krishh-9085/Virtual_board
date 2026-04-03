@@ -75,8 +75,8 @@ export default function VirtualBoard() {
     const canvasManager = new CanvasManager(canvasRef.current);
     setManager(canvasManager);
     
-    // Increased alpha to 0.85 (almost zero lag, follows exact hardware position)
-    const smoother = new PointerSmoother(0.85); 
+    // Alpha 0.55 is the mathematical sweet spot between real-time tracking and silky smooth curved handwriting.
+    const smoother = new PointerSmoother(0.55); 
     
     const Hands = window.Hands;
     const Camera = window.Camera;

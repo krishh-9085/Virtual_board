@@ -51,12 +51,27 @@ export class CanvasManager {
     if (!this.currentStroke) return;
     
     this.currentStroke.points.push({ x, y });
+    const pts = this.currentStroke.points;
     
     this.ctx.beginPath();
-    const pts = this.currentStroke.points;
-    this.ctx.moveTo(pts[pts.length - 2].x, pts[pts.length - 2].y);
-    this.applyStrokeStyles(this.currentStroke);
-    this.ctx.lineTo(x, y);
+    
+    // Smooth spline interpolation for gorgeous ink flow
+    if (pts.length > 2) {
+        const p1 = pts[pts.length - 3];
+        const p2 = pts[pts.length - 2];
+        const p3 = pts[pts.length - 1];
+        
+        const mid1 = { x: (p1.x + p2.x)/2, y: (p1.y + p2.y)/2 };
+        const mid2 = { x: (p2.x + p3.x)/2, y: (p2.y + p3.y)/2 };
+        
+        this.ctx.moveTo(mid1.x, mid1.y);
+        this.applyStrokeStyles(this.currentStroke);
+        this.ctx.quadraticCurveTo(p2.x, p2.y, mid2.x, mid2.y);
+    } else if (pts.length === 2) {
+        this.ctx.moveTo(pts[0].x, pts[0].y);
+        this.applyStrokeStyles(this.currentStroke);
+        this.ctx.lineTo(pts[1].x, pts[1].y);
+    }
     this.ctx.stroke();
   }
 
@@ -107,28 +122,27 @@ export class CanvasManager {
         return;
     }
     
-    // 2. Closed Shape Test -> Tight 25% diagonal bounding threshold (gap must be small)
+    // 2. Closed Shape Test -> 35% bounding threshold
     const startEndDist = Math.sqrt(Math.pow(pStart.x - pEnd.x, 2) + Math.pow(pStart.y - pEnd.y, 2));
     const boundingDiag = Math.sqrt(width*width + height*height);
     
-    if (startEndDist < boundingDiag * 0.25) {
-        // Shoelace Polygon Area
-        let area = 0;
-        for(let i=0; i<pts.length-1; i++) {
-            area += pts[i].x * pts[i+1].y - pts[i+1].x * pts[i].y;
+    if (startEndDist < boundingDiag * 0.40) { // Gap tolerance 40%
+        // Evaluate Radius Variance (Circle vs Polygon)
+        const cx = minX + width / 2;
+        const cy = minY + height / 2;
+        const avgR = (width + height) / 4;
+        
+        let variance = 0;
+        for(let p of pts) {
+            const distToCenter = Math.sqrt((p.x - cx)**2 + (p.y - cy)**2);
+            variance += Math.abs(distToCenter - avgR);
         }
-        area += pts[pts.length-1].x * pStart.y - pStart.x * pts[pts.length-1].y;
-        area = Math.abs(area / 2);
+        variance /= pts.length;
         
-        // Circularity using the jitter-free sampledPerim
-        const circularity = (4 * Math.PI * area) / (sampledPerim * sampledPerim);
-        
-        // Circle (Strict > 0.85)
-        if (circularity > 0.85) {
-            const avgD = (width + height) / 2;
-            const cx = minX + width / 2;
-            const cy = minY + height / 2;
-            const radius = avgD / 2;
+        // --- 1. Circle Test ---
+        // If variance is small, it stayed roughly equidistant from the center
+        if (variance < avgR * 0.30) {
+            const radius = avgR;
             stroke.points = [];
             for(let i=0; i<=36; i++) {
                 const angle = i * (Math.PI * 2 / 36);
@@ -138,31 +152,17 @@ export class CanvasManager {
             return;
         }
         
-        // Rectangle/Square (Strict between 0.70 and 0.85) (Perfect square is 0.78)
-        if (circularity > 0.70 && circularity <= 0.85) {
-            stroke.points = [
-                {x: minX, y: minY},
-                {x: maxX, y: minY},
-                {x: maxX, y: maxY},
-                {x: minX, y: maxY},
-                {x: minX, y: minY}
-            ];
-            stroke.isGeometry = true;
-            return;
-        }
-        
-        // Triangle (Strict between 0.50 and 0.65) (Perfect equilateral is 0.60)
-        if (circularity > 0.50 && circularity <= 0.65) {
-            // Snap to isosceles triangle pointing up/down based on bounding box
-            stroke.points = [
-                {x: minX + width/2, y: minY},
-                {x: maxX, y: maxY},
-                {x: minX, y: maxY},
-                {x: minX + width/2, y: minY}
-            ];
-            stroke.isGeometry = true;
-            return;
-        }
+        // --- 2. Rectangle/Square Snap ---
+        // If it was closed but NOT a circle, snap it to its bounding box
+        stroke.points = [
+            {x: minX, y: minY},
+            {x: maxX, y: minY},
+            {x: maxX, y: maxY},
+            {x: minX, y: maxY},
+            {x: minX, y: minY}
+        ];
+        stroke.isGeometry = true;
+        return;
     }
   }
 
@@ -186,11 +186,16 @@ export class CanvasManager {
       this.ctx.beginPath();
       
       const pts = stroke.points;
-      if (pts.length > 0) {
+      if (pts.length > 2) {
           this.ctx.moveTo(pts[0].x, pts[0].y);
-          for(let i=1; i<pts.length; i++) {
-              this.ctx.lineTo(pts[i].x, pts[i].y);
+          for(let i=1; i<pts.length-1; i++) {
+              const mid = { x: (pts[i].x + pts[i+1].x)/2, y: (pts[i].y + pts[i+1].y)/2 };
+              this.ctx.quadraticCurveTo(pts[i].x, pts[i].y, mid.x, mid.y);
           }
+          this.ctx.lineTo(pts[pts.length-1].x, pts[pts.length-1].y);
+      } else if (pts.length === 2) {
+          this.ctx.moveTo(pts[0].x, pts[0].y);
+          this.ctx.lineTo(pts[1].x, pts[1].y);
       }
       this.ctx.stroke();
     }
