@@ -75,7 +75,8 @@ export default function VirtualBoard() {
     const canvasManager = new CanvasManager(canvasRef.current);
     setManager(canvasManager);
     
-    const smoother = new PointerSmoother(0.65); // More snappy responsive tracking
+    // Increased alpha to 0.85 (almost zero lag, follows exact hardware position)
+    const smoother = new PointerSmoother(0.85); 
     
     const Hands = window.Hands;
     const Camera = window.Camera;
@@ -88,8 +89,9 @@ export default function VirtualBoard() {
     hands.setOptions({
       maxNumHands: 1,
       modelComplexity: 1,
-      minDetectionConfidence: 0.85,
-      minTrackingConfidence: 0.85
+      // Lowered from strict 0.85 to 0.60 so it doesn't lose tracking if lighting drops or hand tilts
+      minDetectionConfidence: 0.60,
+      minTrackingConfidence: 0.60
     });
 
     let frameCount = 0;
