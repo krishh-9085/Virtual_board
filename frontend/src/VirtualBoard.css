@@ -237,3 +237,60 @@ body, html {
 .size-slider::-webkit-slider-thumb:hover {
   transform: scale(1.2);
 }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .floating-toolbar {
+    flex-wrap: wrap;
+    width: 90%;
+    padding: 12px;
+    gap: 12px;
+    justify-content: center;
+    bottom: 20px;
+    border-radius: 16px;
+  }
+  
+  .divider {
+    display: none;
+  }
+  
+  .tool-section {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .board-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .size-slider {
+    width: 80px;
+  }
+  
+  .icon-btn {
+    padding: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .floating-toolbar {
+    width: 95%;
+    gap: 8px;
+    padding: 10px;
+  }
+  
+  .color-btn {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .icon-btn {
+    padding: 4px;
+  }
+  
+  .size-slider {
+    width: 60px;
+  }
+}
