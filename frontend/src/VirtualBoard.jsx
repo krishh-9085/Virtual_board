@@ -19,6 +19,7 @@ export default function VirtualBoard() {
   
   const [manager, setManager] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [initError, setInitError] = useState(null);
   const [mode, setMode] = useState('idle');
   const [fps, setFps] = useState(0);
   
@@ -39,11 +40,6 @@ export default function VirtualBoard() {
     lastFrameTime: performance.now(),
     hoveredBtn: null,
   });
-
-  // Hot sync magicShape
-  useEffect(() => {
-    if (manager) manager.magicShape = magicShape;
-  }, [magicShape, manager]);
 
   // Hot sync magicShape
   useEffect(() => {
@@ -81,6 +77,12 @@ export default function VirtualBoard() {
     const Hands = window.Hands;
     const Camera = window.Camera;
     
+    if (!Hands || !Camera) {
+      setInitError("MediaPipe libraries failed to load. Please check your internet connection.");
+      setIsLoading(false);
+      return;
+    }
+
     // Initialize MediaPipe Hands
     const hands = new Hands({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
@@ -97,6 +99,9 @@ export default function VirtualBoard() {
     let frameCount = 0;
     
     hands.onResults((results) => {
+      // Clear loading state on the VERY FIRST frame, even if no hand is detected
+      setIsLoading(false);
+
       // Calculate FPS
       const now = performance.now();
       const dt = now - stateRef.current.lastFrameTime;
@@ -112,7 +117,6 @@ export default function VirtualBoard() {
       pCtx.clearRect(0, 0, pointerCanvasRef.current.width, pointerCanvasRef.current.height);
 
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        setIsLoading(false);
         const landmarks = results.multiHandLandmarks[0];
         
         // Use Index Finger Tip for drawing
@@ -257,7 +261,11 @@ export default function VirtualBoard() {
       height: 720
     });
 
-    camera.start();
+    camera.start().catch(err => {
+      console.error("Camera failed to start:", err);
+      setInitError("Camera access denied or device not found.");
+      setIsLoading(false);
+    });
 
     return () => {
       camera.stop();
@@ -277,10 +285,26 @@ export default function VirtualBoard() {
 
   return (
     <div className="board-container dark-theme">
-      {isLoading && (
+      {(isLoading || initError) && (
         <div className="loading-overlay">
-          <Loader2 className="spinner" size={48} />
-          <p>Initializing Camera & AI Tracking...</p>
+          {initError ? (
+            <div className="error-container">
+              <div className="error-icon">⚠️</div>
+              <p className="error-msg">{initError}</p>
+              <button 
+                className="retry-btn" 
+                onClick={() => window.location.reload()}
+              >
+                Click to Retry
+              </button>
+            </div>
+          ) : (
+            <>
+              <Loader2 className="spinner" size={48} />
+              <p>Initializing Camera & AI Tracking...</p>
+              <p className="loading-subtext">Please ensure camera access is allowed</p>
+            </>
+          )}
         </div>
       )}
 

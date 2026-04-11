@@ -47,6 +47,50 @@ body, html {
   color: var(--accent);
 }
 
+.loading-subtext {
+  font-size: 13px;
+  color: rgba(255,255,255,0.4);
+  margin-top: -8px;
+}
+
+.error-container {
+  text-align: center;
+  padding: 30px;
+  max-width: 320px;
+  background: rgba(255, 59, 48, 0.05);
+  border: 1px solid rgba(255, 59, 48, 0.1);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.error-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.error-msg {
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.retry-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.retry-btn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+}
+
 @keyframes spin {
   100% { transform: rotate(360deg); }
 }
